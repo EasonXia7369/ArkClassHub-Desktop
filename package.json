@@ -1,0 +1,49 @@
+{
+  "name": "@ark/desktop",
+  "private": true,
+  "version": "1.0.3",
+  "description": "方舟班级中心 · Windows 桌面端(Electron 壳,前端复用 ../ArkClassHub-Web-main)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:web": "npm run build --prefix ../ArkClassHub-Web-main && node scripts/copy-web-dist.mjs",
+    "dist": "npm run build:web && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "top.macrostar.ach",
+    "productName": "ArkClassHub",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web-sync.js",
+      "web-dist/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "language": "2052",
+      "installerLanguages": [
+        "zh_CN"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.18.0"
+  }
+}
