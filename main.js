@@ -9,6 +9,9 @@ const DEV_URL = process.env.ARK_DEV_URL || 'http://localhost:5173'
 // 测试钩子：隔离 userData，避免与已安装实例争单实例锁（不影响正式运行）
 if (process.env.ARK_TEST_USERDATA) app.setPath('userData', process.env.ARK_TEST_USERDATA)
 
+// 测试钩子：隔离 userData，避免与已安装实例争单实例锁（不影响正式运行）
+if (process.env.ARK_TEST_USERDATA) app.setPath('userData', process.env.ARK_TEST_USERDATA)
+
 // 前端热同步：跟随网页版（ach.macrostar.top）自动更新内置前端
 webSync.init({
   liveDir: path.join(app.getPath('userData'), 'web-dist-live'),
@@ -41,6 +44,11 @@ function createWindow() {
     },
   })
   win.once('ready-to-show', () => win.show())
+  win.on('resize', () => {
+    if (!boardScaleOn) return
+    clearTimeout(boardZoomTimer)
+    boardZoomTimer = setTimeout(applyBoardZoom, 100)
+  })
   win.on('closed', () => {
     win = null
   })
@@ -134,6 +142,35 @@ ipcMain.handle('ark:state', () => ({
   autostart: app.getLoginItemSettings().openAtLogin,
 }))
 ipcMain.handle('ark:version', () => app.getVersion())
+
+/* ---------- 大板自适应缩放（主进程驱动） ----------
+ * 前端进入大板时通知 on/off；缩放只挂在窗口 resize 事件上——webFrame 缩放不会触发
+ * 窗口 resize，天然避开「缩放→innerWidth 变化→前端重算→再缩放」的震荡循环。
+ * 物理内容宽 = getContentSize()[0] × 当前 zoomFactor（getContentSize 受 zoom 影响，换算回物理）。
+ */
+let boardScaleOn = false
+let boardZoomTimer = null
+
+function applyBoardZoom() {
+  if (!boardScaleOn || !win) return
+  try {
+    // getBounds().width 是窗口 DIP 宽，不随页面 zoom 变——zoom 引发的 resize 里它恒定，
+    // 目标值不变 → 已应用的 zoom 与目标相同 → 不再 setZoomFactor → 无循环
+    const w = win.getBounds().width
+    const target = Math.min(3, Math.max(0.55, w / 1280))
+    const cur = win.webContents.getZoomFactor()
+    if (Math.abs(target - cur) > 0.02) win.webContents.setZoomFactor(target)
+  } catch {
+    /* 缩放失败忽略 */
+  }
+}
+
+ipcMain.handle('ark:board-scale', (_e, on) => {
+  boardScaleOn = !!on
+  if (boardScaleOn) applyBoardZoom()
+  else win?.webContents.setZoomFactor(1)
+  return true
+})
 ipcMain.handle('ark:fullscreen', (_e, on) => {
   if (win) win.setFullScreen(!!on)
 })

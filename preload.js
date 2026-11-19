@@ -1,15 +1,9 @@
-const { contextBridge, ipcRenderer, webFrame } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('ark', {
   desktop: true,
-  /** 渲染层整体缩放（大板自适应：跟随窗口大小等比缩放内容；路由离开时调 1 恢复） */
-  setZoom: (factor) => {
-    try {
-      webFrame.setZoomFactor(Math.min(4, Math.max(0.3, Number(factor) || 1)))
-    } catch {
-      /* 缩放失败忽略 */
-    }
-  },
+  /** 大板自适应缩放开关：由壳主进程在窗口 resize 时驱动渲染层缩放（前端只报 on/off） */
+  setBoardScale: (on) => ipcRenderer.invoke('ark:board-scale', !!on),
   /** 弹原生「另存为」对话框并写入文件;取消返回 null */
   saveFile: (filename, data) => ipcRenderer.invoke('ark:save-file', filename, data),
   /** 当前桌面设置状态 { fullscreen, alwaysOnTop, autostart } */

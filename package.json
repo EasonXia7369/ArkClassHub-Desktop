@@ -1,7 +1,7 @@
 {
   "name": "@ark/desktop",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "方舟班级中心 · Windows 桌面端(Electron 壳,前端复用 ../ArkClassHub-Web-main)",
   "main": "main.js",
   "scripts": {
